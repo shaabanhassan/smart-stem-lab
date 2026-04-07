@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart STEM Lab — Grade 4 Portal</title>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- GSI Early Init: runs as soon as the library loads -->
+<script>
+// This callback is invoked by the GSI library as soon as it loads
+window.__gsiCallback = function(response) {
+  // Store the credential and trigger the portal login flow
+  if (window.__portalHandleCredential) {
+    window.__portalHandleCredential(response);
+  } else {
+    // Portal JS not ready yet — queue it
+    window.__pendingCredential = response;
+  }
+};
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#060d1f;--navy2:#0b1632;--navy3:#111e3a;
+  --teal:#0d9488;--teal2:#14b8a6;--teal3:#5eead4;
+  --gold:#f59e0b;--gold2:#fbbf24;
+  --blue:#3b82f6;--purple:#8b5cf6;--pink:#ec4899;
+  --green:#10b981;--red:#ef4444;--coral:#f97316;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);
+  --text:rgba(255,255,255,.9);--text2:rgba(255,255,255,.6);--text3:rgba(255,255,255,.35);
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Sora',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+}
+html,body{height:100%;font-family:var(--sans);background:var(--navy);color:var(--text);overflow-x:hidden;}
+
+/* ═══ CANVAS BACKGROUND ═══ */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ═══ SCREENS ═══ */
+.screen{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s ease;}
+.screen.active{opacity:1;pointer-events:all;}
+.dashboard-screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;overflow-y:auto;}
+.dashboard-screen.active{display:flex;}
+
+/* ═══════════════════════════
+   LOGIN SCREEN
+═══════════════════════════ */
+
+/* ─── GOOGLE SIGN-IN SCREEN ─── */
+.gsi-wrap{width:100%;max-width:440px;padding:24px;}
+.gsi-brand{text-align:center;margin-bottom:32px;}
+.gsi-logo{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(--teal),#0d5a54);display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:16px;box-shadow:0 12px 40px rgba(13,148,136,.45);}
+.gsi-name{font-family:var(--serif);font-size:30px;font-weight:700;color:white;margin-bottom:4px;}
+.gsi-tagline{font-size:12px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;}
+
+.gsi-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;margin-bottom:14px;}
+.gsi-card-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:18px;text-align:center;}
+
+/* Google button */
+.google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 20px;border-radius:12px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);cursor:pointer;color:white;font-size:15px;font-weight:600;font-family:var(--sans);transition:all .2s;margin-bottom:0;}
+.google-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.28);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.google-btn:active{transform:translateY(0);}
+.google-icon{width:22px;height:22px;flex-shrink:0;}
+
+.gsi-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text3);font-size:11px;}
+.gsi-divider::before,.gsi-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08);}
+
+/* Demo bypass */
+.demo-btn{width:100%;padding:11px;border-radius:10px;border:1px solid rgba(245,158,11,.25);background:rgba(245,158,11,.06);color:var(--gold2);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:all .2s;}
+.demo-btn:hover{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);}
+
+/* Info box */
+.gsi-info{background:rgba(13,148,136,.06);border:1px solid rgba(13,148,136,.2);border-radius:12px;padding:14px 16px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.7;}
+.gsi-info strong{color:var(--teal3);}
+.gsi-info a{color:var(--teal2);text-decoration:none;}
+.gsi-info a:hover{text-decoration:underline;}
+
+/* Setup configuration panel */
+.setup-panel{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;margin-top:14px;}
+.setup-panel-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold2);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.client-id-input{width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(245,158,11,.25);background:rgba(0,0,0,.3);color:white;font-family:var(--mono);font-size:11px;outline:none;margin-bottom:8px;transition:border-color .15s;}
+.client-id-input:focus{border-color:var(--gold);}
+.client-id-input::placeholder{color:var(--text3);}
+.setup-save-btn{padding:7px 16px;border-radius:7px;border:none;background:var(--gold);color:#0b0a00;font-size:12px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:all .15s;}
+.setup-save-btn:hover{background:var(--gold2);}
+.setup-steps{margin-top:12px;font-size:11px;color:rgba(255,255,255,.45);line-height:1.8;}
+.setup-steps ol{padding-left:16px;}
+.setup-steps a{color:var(--teal2);text-decoration:none;}
+
+/* ─── ROLE PICKER (post-auth) ─── */
+.role-screen{background:rgba(6,13,31,.97);backdrop-filter:blur(30px);}
+.role-pick-wrap{width:100%;max-width:520px;padding:24px;}
+.role-pick-user{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 20px;margin-bottom:28px;}
+.role-pick-photo{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--teal);}
+.role-pick-photo-placeholder{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#0d5a54);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;border:2px solid var(--teal);}
+.role-pick-name{font-size:16px;font-weight:700;}
+.role-pick-email{font-size:12px;color:var(--text3);margin-top:2px;}
+.role-pick-verified{font-size:10px;color:var(--teal3);margin-top:3px;display:flex;align-items:center;gap:4px;}
+
+.role-pick-title{text-align:center;margin-bottom:20px;}
+.role-pick-title h2{font-family:var(--serif);font-size:24px;font-weight:700;margin-bottom:4px;}
+.role-pick-title p{font-size:13px;color:var(--text2);}
+
+.role-cards-big{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+@media(max-width:500px){.role-cards-big{grid-template-columns:1fr;}}
+.role-card-big{border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;transition:all .22s;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);}
+.role-card-big:hover{transform:translateY(-3px);}
+.role-card-big.r-student{border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.07);}
+.role-card-big.r-student:hover{border-color:#3b82f6;background:rgba(59,130,246,.14);box-shadow:0 8px 32px rgba(59,130,246,.2);}
+.role-card-big.r-teacher{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.07);}
+.role-card-big.r-teacher:hover{border-color:#10b981;background:rgba(16,185,129,.14);box-shadow:0 8px 32px rgba(16,185,129,.2);}
+.role-card-big.r-parent{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07);}
+.role-card-big.r-parent:hover{border-color:var(--gold);background:rgba(245,158,11,.14);box-shadow:0 8px 32px rgba(245,158,11,.2);}
+.role-card-big-icon{font-size:40px;margin-bottom:12px;display:block;}
+.role-card-big-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+.role-card-big.r-student .role-card-big-title{color:#93c5fd;}
+.role-card-big.r-teacher .role-card-big-title{color:#6ee7b7;}
+.role-card-big.r-parent .role-card-big-title{color:#fcd34d;}
+.role-card-big-desc{font-size:11px;color:var(--text3);line-height:1.5;}
+
+.role-back-btn{display:block;width:100%;text-align:center;padding:10px;font-size:12px;color:var(--text3);cursor:pointer;border:none;background:transparent;font-family:var(--sans);}
+.role-back-btn:hover{color:var(--text2);}
+
+/* ─── PROFILE PHOTO in topbar ─── */
+.db-avatar-photo{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(13,148,136,.4);}
+
+/* ─── LOADING SPINNER ─── */
+.spinner-screen{background:rgba(6,13,31,.98);}
+.spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--teal2);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-label{font-size:13px;color:var(--text3);margin-top:16px;}
+
+/* ─── CONFIGURED BADGE ─── */
+.configured-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;}
+.not-configured-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;font-size:10px;font-weight:700;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fcd34d;}
+
+/* ─── NOTIFICATION TOAST ─── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a2a1a;border:1px solid #10b981;border-radius:10px;padding:10px 20px;font-size:13px;color:#6ee7b7;z-index:9999;transition:transform .3s ease;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+.login-wrap{width:100%;max-width:480px;padding:24px;}
+
+.login-brand{text-align:center;margin-bottom:36px;}
+.login-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--teal),#0d5a54);display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;box-shadow:0 8px 32px rgba(13,148,136,.4);}
+.login-name{font-family:var(--serif);font-size:28px;font-weight:700;color:white;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;}
+
+/* Role cards */
+.role-pick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:28px;}
+.role-card{background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:14px;padding:20px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.role-card:hover{border-color:var(--teal);background:rgba(13,148,136,.08);}
+.role-card.selected{border-color:var(--teal2);background:rgba(13,148,136,.14);box-shadow:0 0 0 3px rgba(13,148,136,.2);}
+.role-icon{font-size:32px;margin-bottom:8px;display:block;}
+.role-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.04em;}
+.role-card.selected .role-label{color:var(--teal3);}
+
+/* Login form */
+.login-form{background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:16px;padding:24px;display:none;}
+.login-form.show{display:block;animation:fadeUp .25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.form-role-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:16px;}
+.badge-student{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;}
+.badge-teacher{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;}
+.badge-parent{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fcd34d;}
+
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:block;}
+.form-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:white;font-size:14px;font-family:var(--sans);outline:none;transition:border-color .15s;}
+.form-input:focus{border-color:var(--teal);}
+.form-input::placeholder{color:var(--text3);}
+
+.demo-hint{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:rgba(255,255,255,.55);}
+.demo-hint strong{color:var(--gold2);font-family:var(--mono);}
+
+.login-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--teal),#0a7a70);color:white;font-size:14px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(13,148,136,.4);}
+.login-btn:active{transform:translateY(0);}
+
+.login-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:8px;padding:8px 12px;font-size:12px;margin-top:10px;display:none;}
+.login-error.show{display:block;}
+
+/* ═══════════════════════════
+   SHARED DASHBOARD ELEMENTS
+═══════════════════════════ */
+.db-topbar{background:rgba(6,13,31,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:100;}
+.db-brand{display:flex;align-items:center;gap:10px;}
+.db-brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--teal),#0d5a54);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.db-brand-name{font-family:var(--serif);font-size:16px;font-weight:700;}
+.db-brand-sub{font-size:10px;color:var(--text3);margin-left:4px;}
+.db-user{display:flex;align-items:center;gap:10px;}
+.db-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.db-user-name{font-size:13px;font-weight:600;}
+.db-user-role{font-size:10px;color:var(--text3);}
+.db-logout{padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:var(--sans);transition:all .15s;}
+.db-logout:hover{border-color:var(--red);color:#fca5a5;}
+
+.db-body{padding:28px;flex:1;}
+.db-body-inner{max-width:1100px;margin:0 auto;}
+
+/* Cards */
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:16px;padding:22px;}
+.card-dark{background:rgba(6,13,31,.6);border-color:var(--border);}
+.card-teal{background:linear-gradient(135deg,rgba(13,148,136,.2),rgba(13,148,136,.05));border-color:rgba(13,148,136,.3);}
+.card-gold{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.03));border-color:rgba(245,158,11,.25);}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+
+.label-xs{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.label-teal{color:var(--teal2);}
+.label-gold{color:var(--gold2);}
+
+/* Stat block */
+.stat-num{font-family:var(--serif);font-size:36px;font-weight:700;line-height:1;margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--text3);}
+
+/* Progress bar */
+.prog-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0;}
+.prog-fill{height:100%;border-radius:4px;transition:width .6s ease;}
+.prog-teal{background:linear-gradient(90deg,var(--teal),var(--teal2));}
+.prog-gold{background:linear-gradient(90deg,var(--gold),var(--gold2));}
+.prog-blue{background:linear-gradient(90deg,#3b82f6,#60a5fa);}
+.prog-green{background:linear-gradient(90deg,#10b981,#34d399);}
+.prog-red{background:linear-gradient(90deg,#ef4444,#f87171);}
+
+/* Badge */
+.badge{padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.04em;display:inline-block;}
+.badge-green{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;}
+.badge-amber{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#fcd34d;}
+.badge-red{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;}
+.badge-blue{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;}
+.badge-purple{background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#c4b5fd;}
+.badge-teal{background:rgba(13,148,136,.15);border:1px solid rgba(13,148,136,.3);color:var(--teal3);}
+
+/* Section header */
+.sec-h{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* ═══════════════════════════
+   STUDENT DASHBOARD
+═══════════════════════════ */
+.stu-hero{background:linear-gradient(135deg,#0b1632,#0d2040);border-radius:20px;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden;border:1px solid rgba(13,148,136,.2);}
+.stu-hero::after{content:'📚';position:absolute;right:24px;top:50%;transform:translateY(-50%);font-size:80px;opacity:.1;}
+.stu-hero-name{font-family:var(--serif);font-size:26px;font-weight:700;margin-bottom:4px;}
+.stu-hero-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+.stu-hero-stats{display:flex;gap:24px;flex-wrap:wrap;}
+.stu-hero-stat{text-align:left;}
+.stu-hero-stat .n{font-family:var(--serif);font-size:28px;font-weight:700;color:var(--teal3);line-height:1;}
+.stu-hero-stat .l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+
+/* Chapter grid */
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.ch-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;}
+.ch-card:hover{border-color:var(--teal);background:rgba(13,148,136,.08);}
+.ch-card.done{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.06);}
+.ch-card.current{border-color:var(--teal2);background:rgba(13,148,136,.12);box-shadow:0 0 0 2px rgba(13,148,136,.2);}
+.ch-card-num{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:4px;}
+.ch-card-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;}
+.ch-card-part{font-size:10px;color:var(--text3);}
+.ch-card-status{position:absolute;top:12px;right:12px;font-size:14px;}
+
+/* Open book button */
+.open-btn{display:flex;align-items:center;gap:8px;padding:14px 24px;border-radius:12px;background:linear-gradient(135deg,var(--teal),#0a7a70);color:white;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:var(--sans);transition:all .2s;text-decoration:none;}
+.open-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(13,148,136,.5);}
+
+/* Today's focus */
+.focus-card{background:linear-gradient(135deg,#0b1632,#1a1060);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:22px;}
+
+/* ═══════════════════════════
+   TEACHER DASHBOARD
+═══════════════════════════ */
+.tch-alert{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.tch-alert-icon{font-size:18px;flex-shrink:0;}
+.tch-alert-text{font-size:13px;color:rgba(255,255,255,.75);}
+
+/* Roster table */
+.roster-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--border);}
+.roster{width:100%;border-collapse:collapse;font-size:13px;}
+.roster thead tr{background:rgba(6,13,31,.8);}
+.roster th{padding:12px 16px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);white-space:nowrap;border-bottom:1px solid var(--border);}
+.roster td{padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.roster tr:last-child td{border-bottom:none;}
+.roster tr:hover td{background:rgba(255,255,255,.02);}
+.stu-name-cell{display:flex;align-items:center;gap:10px;}
+.stu-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.stu-av-name{font-weight:600;color:var(--text);}
+.mini-prog{height:5px;border-radius:3px;background:rgba(255,255,255,.08);width:80px;display:inline-block;vertical-align:middle;margin-left:6px;overflow:hidden;}
+.mini-prog-fill{height:100%;border-radius:3px;}
+
+/* Analytics bar chart */
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px;padding-top:8px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .4s ease;}
+.bar-label{font-size:8px;color:var(--text3);text-align:center;white-space:nowrap;}
+.bar-val{font-size:9px;font-weight:700;color:var(--text2);}
+
+/* ═══════════════════════════
+   PARENT DASHBOARD
+═══════════════════════════ */
+.par-child-hero{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.03));border:1px solid rgba(245,158,11,.25);border-radius:20px;padding:28px;margin-bottom:20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+.par-child-av{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;}
+.par-child-name{font-family:var(--serif);font-size:24px;font-weight:700;margin-bottom:4px;}
+.par-child-info{font-size:13px;color:var(--text2);}
+
+/* Timeline */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:14px;position:relative;}
+.tl-item::before{content:'';position:absolute;left:11px;top:24px;bottom:0;width:1px;background:var(--border);z-index:0;}
+.tl-item:last-child::before{display:none;}
+.tl-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;z-index:1;border:2px solid;}
+.tl-dot.done{background:rgba(16,185,129,.2);border-color:#10b981;color:#6ee7b7;}
+.tl-dot.current{background:rgba(13,148,136,.2);border-color:var(--teal2);color:var(--teal3);}
+.tl-dot.future{background:rgba(255,255,255,.04);border-color:var(--border2);color:var(--text3);}
+.tl-content{padding-bottom:16px;flex:1;}
+.tl-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+.tl-sub{font-size:11px;color:var(--text3);}
+
+/* Activity heatmap */
+.heat-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.heat-cell{aspect-ratio:1;border-radius:3px;}
+
+/* Achievement badges */
+.ach-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.ach-badge{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid;font-size:12px;}
+.ach-icon{font-size:18px;}
+.ach-name{font-weight:600;font-size:11px;}
+.ach-desc{font-size:10px;opacity:.65;}
+
+/* ═══ MISC ═══ */
+.mt8{margin-top:8px;} .mt16{margin-top:16px;} .mt20{margin-top:20px;} .mt24{margin-top:24px;}
+.mb16{margin-bottom:16px;} .mb20{margin-bottom:20px;}
+.flex{display:flex;} .items-center{align-items:center;} .justify-between{justify-content:space-between;} .gap8{gap:8px;} .gap12{gap:12px;} .gap16{gap:16px;}
+.w100{width:100%;}
+.text-right{text-align:right;}
+.divider{height:1px;background:var(--border);margin:20px 0;}
+
+/* Scroll styling */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- Animated background canvas -->
+<canvas id="bg"></canvas>
+
+<!-- ═══════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════ -->
+<!-- ═══════════════════════════════════
+     LOADING SCREEN
+═══════════════════════════════════ -->
+<div class="screen spinner-screen" id="screen-loading">
+  <div style="text-align:center;">
+    <div class="spinner" style="margin:0 auto;"></div>
+    <div class="spinner-label" id="loading-label">Signing you in with Google...</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ROLE PICKER (shown after Google auth)
+═══════════════════════════════════ -->
+<div class="screen role-screen" id="screen-role">
+  <div class="role-pick-wrap">
+
+    <div class="role-pick-user" id="rolePicker-user">
+      <div class="role-pick-photo-placeholder" id="rolePicker-avatar">?</div>
+      <div>
+        <div class="role-pick-name" id="rolePicker-name">Loading...</div>
+        <div class="role-pick-email" id="rolePicker-email"></div>
+        <div class="role-pick-verified">✓ Verified with Google</div>
+      </div>
+    </div>
+
+    <div class="role-pick-title">
+      <h2>How are you using this today?</h2>
+      <p>Select your role to open the right dashboard.</p>
+    </div>
+
+    <div class="role-cards-big">
+      <div class="role-card-big r-student" onclick="pickRole('student')">
+        <span class="role-card-big-icon">🎒</span>
+        <div class="role-card-big-title">Student</div>
+        <div class="role-card-big-desc">View my chapters, quiz scores, and progress</div>
+      </div>
+      <div class="role-card-big r-teacher" onclick="pickRole('teacher')">
+        <span class="role-card-big-icon">👩‍🏫</span>
+        <div class="role-card-big-title">Teacher</div>
+        <div class="role-card-big-desc">Manage my class, view all student progress</div>
+      </div>
+      <div class="role-card-big r-parent" onclick="pickRole('parent')">
+        <span class="role-card-big-icon">👨‍👩‍👧</span>
+        <div class="role-card-big-title">Parent</div>
+        <div class="role-card-big-desc">Check my child's progress and quiz results</div>
+      </div>
+    </div>
+
+    <button class="role-back-btn" onclick="showGoogleLogin()">← Sign in with a different account</button>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     GOOGLE SIGN-IN SCREEN
+═══════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="gsi-wrap">
+
+    <div class="gsi-brand">
+      <div class="gsi-logo">🤖</div>
+      <div class="gsi-name">Smart STEM Lab</div>
+      <div class="gsi-tagline">Grade 4 · Digital &amp; AI Curriculum Portal</div>
+    </div>
+
+    <!-- Google Sign-In Card -->
+    <div class="gsi-card">
+      <div class="gsi-card-title">
+        <span id="configured-status"></span>
+      </div>
+
+      <!-- Real Google button rendered here by GSI library -->
+      <div id="g_id_onload"
+        data-callback="__gsiCallback"
+        data-auto_prompt="false"
+        data-itp_support="true">
+      </div>
+      <div id="google-btn-container" style="display:flex;justify-content:center;margin-bottom:12px;min-height:44px;">
+        <div class="g_id_signin"
+          data-type="standard"
+          data-theme="filled_black"
+          data-text="signin_with"
+          data-shape="pill"
+          data-logo_alignment="left"
+          data-width="320">
+        </div>
+      </div>
+
+      <!-- Manual Google button fallback (shown when no Client ID) -->
+      <button class="google-btn" id="google-btn-manual" onclick="triggerGoogleAuth()" style="display:none;">
+        <svg class="google-icon" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Sign in with Google
+      </button>
+
+      <div class="gsi-divider">or for demo / presentations</div>
+
+      <button class="demo-btn" onclick="showDemoSelector()">
+        🎬 Demo Mode — No Google Account Needed
+      </button>
+    </div>
+
+    <!-- Demo selector (hidden by default) -->
+    <div id="demo-selector" style="display:none;animation:fadeUp .2s ease;">
+      <div class="gsi-card" style="margin-top:0;padding-top:16px;">
+        <div class="gsi-card-title">Choose a demo account</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button onclick="demoLogin('student')" style="padding:12px 16px;border-radius:10px;border:1.5px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
+            <span style="font-size:22px;">🎒</span>
+            <div><div style="font-weight:700;">Student — Omar Hassan</div><div style="font-size:11px;opacity:.7;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfd0d2decd91d7deccccded1ffdbdad2d091ccd2decdcbcccbdad2d3dedd91dcd0d2">[email&#160;protected]</a></div></div>
+          </button>
+          <button onclick="demoLogin('teacher')" style="padding:12px 16px;border-radius:10px;border:1.5px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:#6ee7b7;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
+            <span style="font-size:22px;">👩‍🏫</span>
+            <div><div style="font-weight:700;">Teacher — Ms. Sarah Al-Rashid</div><div style="font-size:11px;opacity:.7;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5f322c712c3e2d3e371f3b3a3230712c323e2d2b2c2b3a32333e3d713c3032">[email&#160;protected]</a></div></div>
+          </button>
+          <button onclick="demoLogin('parent')" style="padding:12px 16px;border-radius:10px;border:1.5px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#fcd34d;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
+            <span style="font-size:22px;">👨‍👩‍👧</span>
+            <div><div style="font-weight:700;">Parent — Mr. Ahmed Hassan</div><div style="font-size:11px;opacity:.7;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f39e81dd929b9e9697b397969e9cdd809e9281878087969e9f9291dd909c9e">[email&#160;protected]</a></div></div>
+          </button>
+        </div>
+        <button onclick="hideDemoSelector()" style="width:100%;margin-top:10px;padding:8px;border:none;background:transparent;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);">← Back</button>
+      </div>
+    </div>
+
+    <!-- Setup panel -->
+    <div class="setup-panel">
+      <div class="setup-panel-title">⚙️ Developer Setup — Google Client ID</div>
+      <input class="client-id-input" id="clientIdInput" type="text" placeholder="Paste your Google Client ID here (e.g. 123456789-abc.apps.googleusercontent.com)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="setup-save-btn" onclick="saveClientId()">💾 Save &amp; Activate</button>
+        <button onclick="testSavedId()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-size:11px;cursor:pointer;font-family:var(--sans);">🔍 Test</button>
+        <button onclick="clearClientId()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.25);background:transparent;color:#fca5a5;font-size:11px;cursor:pointer;font-family:var(--sans);">✕ Clear</button>
+      </div>
+      <div style="font-size:11px;margin-top:8px;" id="clientIdStatus"></div>
+      <div class="setup-steps">
+        <strong style="color:rgba(255,255,255,.5);">How to get your Client ID in 5 steps:</strong>
+        <ol>
+          <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
+          <li>Create a project → Enable <strong style="color:rgba(255,255,255,.5);">Google Identity API</strong></li>
+          <li>APIs &amp; Services → Credentials → <strong style="color:rgba(255,255,255,.5);">Create OAuth 2.0 Client ID</strong></li>
+          <li>Type: <strong style="color:rgba(255,255,255,.5);">Web application</strong> → In <strong style="color:rgba(255,255,255,.5);">Authorized JavaScript Origins</strong> add your exact URL (e.g. <code style="color:var(--teal3);font-family:var(--mono);font-size:10px;">http://localhost:8000</code>)</li>
+          <li>Copy the Client ID → paste above → Save &amp; Activate ✓</li>
+        </ol>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:11px;color:#fca5a5;">
+          <strong>⚠️ Important:</strong> Google Sign-In will NOT work if you open this file directly in the browser (<code style="font-family:var(--mono);">file://</code>). You must serve it over HTTP. Quickest way:
+          <div style="margin-top:6px;background:rgba(0,0,0,.3);border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:10px;color:#6ee7b7;">python -m http.server 8000</div>
+          Then open: <a href="http://localhost:8000" target="_blank" style="color:var(--teal2);">http://localhost:8000/grade4_portal.html</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════
+     STUDENT DASHBOARD
+═══════════════════════════════════ -->
+<div class="dashboard-screen" id="screen-student">
+  <div class="db-topbar">
+    <div class="db-brand">
+      <div class="db-brand-icon">🤖</div>
+      <span class="db-brand-name">Smart STEM Lab</span>
+      <span class="db-brand-sub">Grade 4</span>
+    </div>
+    <div class="db-user">
+      <div style="text-align:right">
+        <div class="db-user-name">Omar Hassan</div>
+        <div class="db-user-role">Student · Class 4B</div>
+      </div>
+      <div class="db-avatar" style="background:linear-gradient(135deg,#2563eb,#7c3aed);">O</div>
+      <button class="db-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="db-body">
+  <div class="db-body-inner">
+
+    <!-- Hero -->
+    <div class="stu-hero mb20">
+      <div class="stu-hero-name">Welcome back, Omar! 👋</div>
+      <div class="stu-hero-sub">You're doing great — keep the momentum going.</div>
+      <div style="margin-bottom:16px;">
+        <div class="flex justify-between" style="font-size:12px;color:var(--text3);margin-bottom:6px;">
+          <span>Year Progress</span><span style="color:var(--teal3);font-weight:600;">7 of 13 chapters</span>
+        </div>
+        <div class="prog-bar" style="height:10px;"><div class="prog-fill prog-teal" style="width:54%"></div></div>
+      </div>
+      <div class="stu-hero-stats">
+        <div class="stu-hero-stat"><div class="n">7</div><div class="l">Chapters done</div></div>
+        <div class="stu-hero-stat"><div class="n" style="color:var(--gold2)">82%</div><div class="l">Avg quiz score</div></div>
+        <div class="stu-hero-stat"><div class="n" style="color:#c4b5fd">12🔥</div><div class="l">Day streak</div></div>
+        <div class="stu-hero-stat"><div class="n" style="color:#f9a8d4">2</div><div class="l">Badges earned</div></div>
+      </div>
+    </div>
+
+    <div class="grid-2 mb20">
+
+      <!-- Today's focus -->
+      <div class="focus-card">
+        <div class="label-xs label-teal mb8">📍 Today's Focus</div>
+        <div style="font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:6px;">Chapter 8: Mini Project 2</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">The Robot Race — strategy planning and obstacle course testing.</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">
+          <div style="margin-bottom:5px;">✓ Ch 7 Sensors Quiz — <span style="color:#6ee7b7">Passed (4/5)</span></div>
+          <div style="margin-bottom:5px;">⏳ Race strategy document — <span style="color:#fcd34d">In progress</span></div>
+          <div>⬜ Team test run log entries — <span style="color:var(--text3)">Not started</span></div>
+        </div>
+        <button class="open-btn" onclick="openBook()">
+          <span>📖</span> Open Grade 4 Book
+        </button>
+      </div>
+
+      <!-- Upcoming -->
+      <div class="card">
+        <div class="label-xs mb8">📅 Upcoming Assessments</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="padding:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;color:#fca5a5;margin-bottom:2px;">WEEK 14 · IN 6 DAYS</div>
+            <div style="font-size:13px;font-weight:600;">🏁 Robot Race Day</div>
+            <div style="font-size:11px;color:var(--text3);">Mini Project 2 · 25% of grade</div>
+          </div>
+          <div style="padding:10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;color:#93c5fd;margin-bottom:2px;">WEEK 15 · TERM END</div>
+            <div style="font-size:13px;font-weight:600;">📊 Term Review</div>
+            <div style="font-size:11px;color:var(--text3);">Self-assessment + portfolio</div>
+          </div>
+          <div style="padding:10px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:8px;">
+            <div style="font-size:11px;font-weight:700;color:#c4b5fd;margin-bottom:2px;">WEEK 36 · END OF YEAR</div>
+            <div style="font-size:13px;font-weight:600;">🏅 Robot Olympics</div>
+            <div style="font-size:11px;color:var(--text3);">Signature project · Live event</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Chapter progress -->
+    <div class="sec-h">📚 My Chapters</div>
+    <div class="ch-grid mb20">
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">CHAPTER 01</div><div class="ch-card-name">Custom Blocks</div><div class="ch-card-part">Scratch Advanced</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">CHAPTER 02</div><div class="ch-card-name">Broadcast &amp; Receive</div><div class="ch-card-part">Scratch Advanced</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">CHAPTER 03</div><div class="ch-card-name">Lists</div><div class="ch-card-part">Scratch Advanced</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">MINI PROJECT 1</div><div class="ch-card-name">The Scratch Game</div><div class="ch-card-part">Scratch Advanced</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">CHAPTER 05</div><div class="ch-card-name">What is a Robot?</div><div class="ch-card-part">Robotics</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">CHAPTER 06</div><div class="ch-card-name">Programming Robot</div><div class="ch-card-part">Robotics</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card done" onclick="openBook()"><div class="ch-card-num">CHAPTER 07</div><div class="ch-card-name">Sensors</div><div class="ch-card-part">Robotics</div><div class="ch-card-status">✅</div></div>
+      <div class="ch-card current" onclick="openBook()"><div class="ch-card-num">MINI PROJECT 2</div><div class="ch-card-name">The Robot Race</div><div class="ch-card-part">Robotics</div><div class="ch-card-status">⏳</div></div>
+      <div class="ch-card" onclick="openBook()"><div class="ch-card-num">CHAPTER 09</div><div class="ch-card-name">Word: Tables &amp; Reports</div><div class="ch-card-part">Office Track</div><div class="ch-card-status">🔒</div></div>
+      <div class="ch-card" onclick="openBook()"><div class="ch-card-num">CHAPTER 10</div><div class="ch-card-name">PowerPoint Design</div><div class="ch-card-part">Office Track</div><div class="ch-card-status">🔒</div></div>
+      <div class="ch-card" onclick="openBook()"><div class="ch-card-num">CHAPTER 11</div><div class="ch-card-name">Design Basics</div><div class="ch-card-part">Design Track</div><div class="ch-card-status">🔒</div></div>
+      <div class="ch-card" onclick="openBook()"><div class="ch-card-num">CHAPTER 12</div><div class="ch-card-name">Digital Art &amp; Layers</div><div class="ch-card-part">Design Track</div><div class="ch-card-status">🔒</div></div>
+      <div class="ch-card" onclick="openBook()"><div class="ch-card-num">CHAPTER 13</div><div class="ch-card-name">Robot Olympics</div><div class="ch-card-part">Signature Project</div><div class="ch-card-status">🔒</div></div>
+    </div>
+
+    <!-- Quiz results -->
+    <div class="sec-h">📊 Quiz History</div>
+    <div class="card mb20">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="flex justify-between items-center"><span style="font-size:13px;font-weight:600;">Ch 1: Custom Blocks</span><div class="flex items-center gap8"><div class="mini-prog"><div class="mini-prog-fill prog-green" style="width:100%"></div></div><span style="font-size:12px;color:#6ee7b7;font-weight:700;font-family:var(--mono)">5/5</span></div></div>
+        <div class="flex justify-between items-center"><span style="font-size:13px;font-weight:600;">Ch 2: Broadcast</span><div class="flex items-center gap8"><div class="mini-prog"><div class="mini-prog-fill prog-green" style="width:80%"></div></div><span style="font-size:12px;color:#6ee7b7;font-weight:700;font-family:var(--mono)">4/5</span></div></div>
+        <div class="flex justify-between items-center"><span style="font-size:13px;font-weight:600;">Ch 3: Lists</span><div class="flex items-center gap8"><div class="mini-prog"><div class="mini-prog-fill prog-teal" style="width:80%"></div></div><span style="font-size:12px;color:var(--teal3);font-weight:700;font-family:var(--mono)">4/5</span></div></div>
+        <div class="flex justify-between items-center"><span style="font-size:13px;font-weight:600;">Ch 5: Robots</span><div class="flex items-center gap8"><div class="mini-prog"><div class="mini-prog-fill prog-blue" style="width:60%"></div></div><span style="font-size:12px;color:#93c5fd;font-weight:700;font-family:var(--mono)">3/5</span></div></div>
+        <div class="flex justify-between items-center"><span style="font-size:13px;font-weight:600;">Ch 7: Sensors</span><div class="flex items-center gap8"><div class="mini-prog"><div class="mini-prog-fill prog-green" style="width:80%"></div></div><span style="font-size:12px;color:#6ee7b7;font-weight:700;font-family:var(--mono)">4/5</span></div></div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     TEACHER DASHBOARD
+═══════════════════════════════════ -->
+<div class="dashboard-screen" id="screen-teacher">
+  <div class="db-topbar">
+    <div class="db-brand">
+      <div class="db-brand-icon">🤖</div>
+      <span class="db-brand-name">Smart STEM Lab</span>
+      <span class="db-brand-sub">Teacher Portal</span>
+    </div>
+    <div class="db-user">
+      <div style="text-align:right">
+        <div class="db-user-name">Ms. Sarah Al-Rashid</div>
+        <div class="db-user-role">Grade 4 · Class 4B · Al Noor International School</div>
+      </div>
+      <div class="db-avatar" style="background:linear-gradient(135deg,#059669,#10b981);">S</div>
+      <button class="db-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="db-body">
+  <div class="db-body-inner">
+
+    <!-- Alert -->
+    <div class="tch-alert">
+      <div class="tch-alert-icon">⚠️</div>
+      <div class="tch-alert-text"><strong style="color:#fca5a5;">3 students</strong> are falling behind — Layla Mahmoud, James Okafor, and Yuki Tanaka have not completed Chapter 6 quiz after 2 weeks. Consider a targeted check-in before Race Day.</div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid-4 mb20">
+      <div class="card text-right">
+        <div class="label-xs mb8">CLASS SIZE</div>
+        <div class="stat-num" style="color:var(--teal3)">24</div>
+        <div class="stat-label">Students enrolled</div>
+      </div>
+      <div class="card text-right">
+        <div class="label-xs mb8">AVG PROGRESS</div>
+        <div class="stat-num" style="color:var(--gold2)">62%</div>
+        <div class="stat-label">Year completion</div>
+      </div>
+      <div class="card text-right">
+        <div class="label-xs mb8">THIS WEEK</div>
+        <div class="stat-num" style="color:#93c5fd">38</div>
+        <div class="stat-label">Quiz attempts</div>
+      </div>
+      <div class="card text-right">
+        <div class="label-xs mb8">ON TRACK</div>
+        <div class="stat-num" style="color:#6ee7b7">18</div>
+        <div class="stat-label">of 24 students</div>
+      </div>
+    </div>
+
+    <div class="grid-2 mb20">
+
+      <!-- Quiz Analytics -->
+      <div class="card">
+        <div class="sec-h" style="font-size:15px;">📈 Quiz Averages by Chapter</div>
+        <div class="bar-chart" id="barChart"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;">Class average scores — all 24 students · Hover bars to see detail</div>
+      </div>
+
+      <!-- Upcoming deadlines -->
+      <div class="card">
+        <div class="sec-h" style="font-size:15px;">📅 Coming Up</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="padding:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;">
+            <div style="font-size:10px;font-weight:700;color:#fca5a5;letter-spacing:.06em;margin-bottom:3px;">THIS WEEK · RACE DAY</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:2px;">🏁 Mini Project 2</div>
+            <div style="font-size:11px;color:var(--text3);">Robot Race · 24 students · 25% of grade</div>
+            <div style="margin-top:8px;"><span class="badge badge-green">18 ready</span> <span class="badge badge-amber" style="margin-left:4px;">3 at risk</span> <span class="badge badge-red" style="margin-left:4px;">3 behind</span></div>
+          </div>
+          <div style="padding:12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;">
+            <div style="font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:.06em;margin-bottom:3px;">WEEK 15 · TERM END</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:2px;">📋 Term 1 Reports Due</div>
+            <div style="font-size:11px;color:var(--text3);">24 student report cards · Submit to admin</div>
+          </div>
+          <div style="padding:12px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:10px;">
+            <div style="font-size:10px;font-weight:700;color:#c4b5fd;letter-spacing:.06em;margin-bottom:3px;">WEEK 36 · END OF YEAR</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:2px;">🏅 Robot Olympics</div>
+            <div style="font-size:11px;color:var(--text3);">Invite parents · Book venue · Prepare certificates</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Class Roster -->
+    <div class="sec-h">👥 Class Roster — 4B</div>
+    <div class="roster-wrap mb20">
+      <table class="roster" id="rosterTable">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Chapters Done</th>
+            <th>Progress</th>
+            <th>Last Quiz</th>
+            <th>Avg Score</th>
+            <th>Last Active</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rosterBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="sec-h">⚡ Quick Actions</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="alert('📧 Message composer would open here in the full system.')" style="padding:10px 18px;border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .15s;">📧 Message All Students</button>
+      <button onclick="alert('📊 Grade export would generate a CSV in the full system.')" style="padding:10px 18px;border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .15s;">📊 Export Grades CSV</button>
+      <button onclick="alert('🖨️ Report cards would be generated as PDFs in the full system.')" style="padding:10px 18px;border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .15s;">🖨️ Generate Report Cards</button>
+      <button onclick="alert('📣 Parent announcements would be sent via the school email system.')" style="padding:10px 18px;border-radius:10px;border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-family:var(--sans);font-size:13px;transition:all .15s;">📣 Send Parent Announcement</button>
+      <a href="grade4_book.html" target="_blank" style="padding:10px 18px;border-radius:10px;border:1px solid rgba(13,148,136,.4);background:rgba(13,148,136,.1);color:var(--teal3);cursor:pointer;font-family:var(--sans);font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">📖 Open Student Book</a>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PARENT DASHBOARD
+═══════════════════════════════════ -->
+<div class="dashboard-screen" id="screen-parent">
+  <div class="db-topbar">
+    <div class="db-brand">
+      <div class="db-brand-icon">🤖</div>
+      <span class="db-brand-name">Smart STEM Lab</span>
+      <span class="db-brand-sub">Parent Portal</span>
+    </div>
+    <div class="db-user">
+      <div style="text-align:right">
+        <div class="db-user-name">Mr. Ahmed Hassan</div>
+        <div class="db-user-role">Parent of Omar Hassan · Class 4B</div>
+      </div>
+      <div class="db-avatar" style="background:linear-gradient(135deg,#b45309,#f59e0b);">A</div>
+      <button class="db-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="db-body">
+  <div class="db-body-inner">
+
+    <!-- Child hero card -->
+    <div class="par-child-hero mb20">
+      <div class="par-child-av">👦</div>
+      <div style="flex:1">
+        <div class="label-xs label-gold mb8">YOUR CHILD</div>
+        <div class="par-child-name">Omar Hassan</div>
+        <div class="par-child-info">Grade 4B · Al Noor International School · Academic Year 2024–25</div>
+        <div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;">
+          <div><div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--teal3)">54%</div><div style="font-size:10px;color:var(--text3)">Year complete</div></div>
+          <div><div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--gold2)">82%</div><div style="font-size:10px;color:var(--text3)">Avg quiz score</div></div>
+          <div><div style="font-family:var(--serif);font-size:22px;font-weight:700;color:#c4b5fd">12🔥</div><div style="font-size:10px;color:var(--text3)">Day streak</div></div>
+          <div style="align-self:center;"><span class="badge badge-green" style="font-size:12px;padding:6px 14px;">On Track ✓</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2 mb20">
+
+      <!-- Learning timeline -->
+      <div class="card">
+        <div class="sec-h" style="font-size:15px;">📖 Chapter Progress</div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">Part 1: Scratch Advanced <span class="badge badge-green" style="margin-left:6px;">Complete</span></div><div class="tl-sub">Ch 1–3 + Mini Project 1 · Quiz avg: 87%</div></div></div>
+          <div class="tl-item"><div class="tl-dot done">✓</div><div class="tl-content"><div class="tl-title">Ch 5–7: Robotics <span class="badge badge-green" style="margin-left:6px;">Complete</span></div><div class="tl-sub">IPO model · Programming · Sensors · Quiz avg: 78%</div></div></div>
+          <div class="tl-item"><div class="tl-dot current">⏳</div><div class="tl-content"><div class="tl-title">Mini Project 2: Robot Race <span class="badge badge-amber" style="margin-left:6px;">In Progress</span></div><div class="tl-sub">Race Day: this week · Strategy document in progress</div></div></div>
+          <div class="tl-item"><div class="tl-dot future">○</div><div class="tl-content"><div class="tl-title">Part 3–4: Office &amp; Design</div><div class="tl-sub">Word reports · PowerPoint · Color theory · Layers</div></div></div>
+          <div class="tl-item"><div class="tl-dot future">○</div><div class="tl-content"><div class="tl-title">Robot Olympics — Signature Project</div><div class="tl-sub">End of year live event · Parents invited</div></div></div>
+        </div>
+      </div>
+
+      <!-- Weekly summary + activity -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card card-teal">
+          <div class="label-xs label-teal mb8">THIS WEEK</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="flex justify-between"><span style="font-size:13px;">Sessions completed</span><span style="font-weight:700;color:var(--teal3)">4</span></div>
+            <div class="flex justify-between"><span style="font-size:13px;">Time in book</span><span style="font-weight:700;color:var(--teal3)">1h 42m</span></div>
+            <div class="flex justify-between"><span style="font-size:13px;">Quiz attempts</span><span style="font-weight:700;color:var(--teal3)">2</span></div>
+            <div class="flex justify-between"><span style="font-size:13px;">Exercises completed</span><span style="font-weight:700;color:var(--teal3)">6</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="label-xs mb8">Activity — Last 4 Weeks</div>
+          <div class="heat-grid" id="heatGrid"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+            <div style="font-size:10px;color:var(--text3);">Less</div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(255,255,255,.06);"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(13,148,136,.3);"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(13,148,136,.6);"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:var(--teal2);"></div>
+            <div style="font-size:10px;color:var(--text3);">More</div>
+          </div>
+        </div>
+
+        <div class="card card-gold">
+          <div class="label-xs label-gold mb8">⚠️ RACE DAY THIS WEEK</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.6;">Omar's team will compete in the <strong>Robot Race</strong> on <strong>Thursday</strong>. This is 25% of his grade. He is well prepared — his sensor calibration data looks strong. You are welcome to attend!</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quiz scores -->
+    <div class="sec-h">📊 Quiz Results</div>
+    <div class="card mb20">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
+        <div style="text-align:center;padding:14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;"><div style="font-family:var(--serif);font-size:28px;font-weight:700;color:#6ee7b7">5/5</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ch 1: Custom Blocks</div><div class="badge badge-green mt8">Excellent</div></div>
+        <div style="text-align:center;padding:14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;"><div style="font-family:var(--serif);font-size:28px;font-weight:700;color:#6ee7b7">4/5</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ch 2: Broadcast</div><div class="badge badge-green mt8">Good</div></div>
+        <div style="text-align:center;padding:14px;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.2);border-radius:10px;"><div style="font-family:var(--serif);font-size:28px;font-weight:700;color:var(--teal3)">4/5</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ch 3: Lists</div><div class="badge badge-teal mt8">Good</div></div>
+        <div style="text-align:center;padding:14px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;"><div style="font-family:var(--serif);font-size:28px;font-weight:700;color:#93c5fd">3/5</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ch 5: Robots</div><div class="badge badge-blue mt8">Satisfactory</div></div>
+        <div style="text-align:center;padding:14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;"><div style="font-family:var(--serif);font-size:28px;font-weight:700;color:#6ee7b7">4/5</div><div style="font-size:11px;color:var(--text3);margin-top:2px;">Ch 7: Sensors</div><div class="badge badge-green mt8">Good</div></div>
+      </div>
+      <div style="margin-top:14px;padding:12px 14px;background:rgba(255,255,255,.03);border-radius:8px;font-size:12px;color:var(--text3);">
+        💡 <strong style="color:var(--text2);">Teacher's note:</strong> Omar's weakest area is the IPO model (Ch 5 — 3/5). Encourage him to review the sensor diagram on page 3 of the chapter and explain it back to you in his own words. This oral explanation technique works very well for this concept.
+      </div>
+    </div>
+
+    <!-- Achievements & message -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="sec-h" style="font-size:15px;">🏆 Achievements Earned</div>
+        <div class="ach-grid">
+          <div class="ach-badge" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);">
+            <div class="ach-icon">⭐</div>
+            <div><div class="ach-name" style="color:var(--gold2)">Perfect Quiz</div><div class="ach-desc">5/5 on Ch 1 Custom Blocks</div></div>
+          </div>
+          <div class="ach-badge" style="background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);">
+            <div class="ach-icon">🔥</div>
+            <div><div class="ach-name" style="color:#c4b5fd">10-Day Streak</div><div class="ach-desc">Used the book 10 days in a row</div></div>
+          </div>
+          <div class="ach-badge" style="background:rgba(255,255,255,.04);border-color:var(--border);">
+            <div class="ach-icon">🔒</div>
+            <div><div class="ach-name" style="color:var(--text3)">Robot Builder</div><div class="ach-desc">Complete Mini Project 2</div></div>
+          </div>
+          <div class="ach-badge" style="background:rgba(255,255,255,.04);border-color:var(--border);">
+            <div class="ach-icon">🔒</div>
+            <div><div class="ach-name" style="color:var(--text3)">Olympian</div><div class="ach-desc">Compete in Robot Olympics</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-h" style="font-size:15px;">💬 Message Teacher</div>
+        <textarea style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:10px;padding:12px;color:var(--text);font-family:var(--sans);font-size:13px;resize:none;height:100px;outline:none;margin-bottom:10px;" placeholder="Write a message to Ms. Sarah Al-Rashid..."></textarea>
+        <button onclick="alert('📧 In the full system, this sends a message to the teacher via the school email integration.')" style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--teal),#0a7a70);color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);">Send Message</button>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;font-size:11px;color:var(--text3);">Last message from Ms. Sarah: <em style="color:var(--text2)">"Omar is doing very well this term. His Robot Race strategy document is thorough and shows real understanding of the sensor calibration process."</em> — 3 days ago</div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/* ═══ ANIMATED BACKGROUND ═══ */
+(function(){
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  for(let i=0;i<60;i++) particles.push({x:Math.random()*2000,y:Math.random()*1200,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.5+.1});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='rgba(255,255,255,.025)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    let g=ctx.createRadialGradient(W*.7,H*.3,0,W*.7,H*.3,300);
+    g.addColorStop(0,'rgba(13,148,136,.08)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    g=ctx.createRadialGradient(W*.2,H*.7,0,W*.2,H*.7,250);
+    g.addColorStop(0,'rgba(245,158,11,.05)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    particles.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${p.a})`;ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let currentUser = null;   // { name, email, photo, googleId }
+let currentRole = null;   // 'student' | 'teacher' | 'parent'
+let googleInitialized = false;
+
+/* ═══════════════════════════════════════════════════
+   GOOGLE CLIENT ID MANAGEMENT
+═══════════════════════════════════════════════════ */
+// ─── CLIENT ID MANAGEMENT ───────────────────────────────
+
+function getClientId() {
+  return (localStorage.getItem('ssl_client_id') || '').trim();
+}
+
+function setStatusMsg(msg, color) {
+  const el = document.getElementById('clientIdStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'rgba(255,255,255,.45)';
+}
+
+function checkOrigin() {
+  const proto = window.location.protocol;
+  if (proto === 'file:') {
+    return {
+      ok: false,
+      msg: 'You are opening this file directly (file://). Google OAuth requires HTTP or HTTPS. ' +
+           'Serve this file using a local server (e.g. VS Code Live Server, or run: python -m http.server 8000) ' +
+           'then open http://localhost:8000/grade4_portal.html'
+    };
+  }
+  return { ok: true };
+}
+
+function saveClientId() {
+  const raw = document.getElementById('clientIdInput').value;
+  const val = raw.trim().replace(/\s+/g, '');
+
+  if (!val) {
+    setStatusMsg('⚠️ Field is empty — paste your Client ID first.', '#fca5a5');
+    return;
+  }
+  if (val.length < 30) {
+    setStatusMsg('⚠️ Too short — make sure you copied the full Client ID.', '#fca5a5');
+    return;
+  }
+
+  // Check origin before saving
+  const originCheck = checkOrigin();
+  if (!originCheck.ok) {
+    setStatusMsg('⚠️ ' + originCheck.msg, '#fcd34d');
+    return;
+  }
+
+  // Save to localStorage
+  localStorage.setItem('ssl_client_id', val);
+  setStatusMsg('✓ Saved! Reloading to activate Google Sign-In...', '#6ee7b7');
+
+  // GSI can only be initialized ONCE per page load.
+  // We MUST reload — but now it will load with the correct Client ID.
+  setTimeout(() => location.reload(), 800);
+}
+
+function activateGoogleSignIn(clientId) {
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    document.getElementById('configured-status').innerHTML =
+      '<span class="not-configured-badge">⚠️ Google library not reachable — check internet connection</span>';
+    return;
+  }
+
+  try {
+    // Initialize GSI with the real Client ID
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: window.__gsiCallback,
+      auto_prompt: false,
+      use_fedcm_for_prompt: false,
+    });
+
+    // Render the button into our container
+    const container = document.getElementById('google-btn-container');
+    container.innerHTML = '';
+    google.accounts.id.renderButton(container, {
+      theme: 'filled_black',
+      size: 'large',
+      shape: 'pill',
+      width: 340,
+      text: 'signin_with',
+      logo_alignment: 'left',
+    });
+
+    document.getElementById('configured-status').innerHTML =
+      '<span class="configured-badge">✓ Google Sign-In active</span>';
+    document.getElementById('google-btn-manual').style.display = 'none';
+    googleInitialized = true;
+
+  } catch (err) {
+    document.getElementById('configured-status').innerHTML =
+      '<span class="not-configured-badge">⚠️ GSI error: ' + err.message + '</span>';
+    console.error('[SSL Portal] GSI error:', err);
+  }
+}
+
+function initGoogleSignIn() {
+  const clientId = getClientId();
+  const statusEl = document.getElementById('configured-status');
+  const inputEl  = document.getElementById('clientIdInput');
+
+  // Check origin first
+  const originCheck = checkOrigin();
+  if (!originCheck.ok) {
+    statusEl.innerHTML = '<span class="not-configured-badge">⚠️ Requires HTTP/HTTPS — not file://</span>';
+    // Show warning in setup panel
+    setStatusMsg('⚠️ Must be served over HTTP/HTTPS for Google Sign-In to work. See setup panel.', '#fcd34d');
+  }
+
+  // Pre-fill the input if a Client ID was previously saved
+  if (clientId) inputEl.value = clientId;
+
+  if (!clientId) {
+    statusEl.innerHTML = '<span class="not-configured-badge">⚠️ Google Sign-In not yet configured</span>';
+    document.getElementById('google-btn-manual').style.display = 'none';
+    return;
+  }
+
+  // Client ID exists — activate it
+  activateGoogleSignIn(clientId);
+}
+// Called by GSI library after user completes Google Sign-In
+function handleGoogleCredential(response) {
+  showLoading('Verifying your Google account...');
+  try {
+    const payload = decodeJWT(response.credential);
+    currentUser = {
+      name:     payload.name,
+      email:    payload.email,
+      photo:    payload.picture,
+      googleId: payload.sub,
+      isGoogle: true,
+    };
+    setTimeout(() => showRolePicker(), 400);
+  } catch(e) {
+    hideLoading();
+    showToast('⚠️ Could not decode Google response. Try demo mode.');
+    console.error(e);
+  }
+}
+
+function decodeJWT(token) {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const json = decodeURIComponent(
+    atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+  );
+  return JSON.parse(json);
+}
+
+function triggerGoogleAuth() {
+  const clientId = getClientId();
+  if (clientId === PLACEHOLDER_ID) {
+    showToast('⚠️ Please paste your Google Client ID in the setup panel below first.');
+    document.getElementById('clientIdInput').focus();
+    return;
+  }
+  if (window.google && window.google.accounts) {
+    google.accounts.id.prompt();
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   DEMO MODE
+═══════════════════════════════════════════════════ */
+const DEMO_USERS = {
+  student: { name: 'Omar Hassan',       email: 'omar.hassan@demo.smartstemlab.com', photo: null, googleId: 'demo_student', isGoogle: false },
+  teacher: { name: 'Ms. Sarah Al-Rashid', email: 'ms.sarah@demo.smartstemlab.com', photo: null, googleId: 'demo_teacher', isGoogle: false },
+  parent:  { name: 'Mr. Ahmed Hassan',  email: 'mr.ahmed@demo.smartstemlab.com',   photo: null, googleId: 'demo_parent',  isGoogle: false },
+};
+
+function showDemoSelector() {
+  document.getElementById('demo-selector').style.display = 'block';
+  document.getElementById('google-btn-container').style.display = 'none';
+  document.getElementById('google-btn-manual').style.display = 'none';
+}
+function hideDemoSelector() {
+  document.getElementById('demo-selector').style.display = 'none';
+  document.getElementById('google-btn-container').style.display = 'flex';
+}
+
+function demoLogin(role) {
+  showLoading('Opening demo...');
+  currentUser = { ...DEMO_USERS[role] };
+  currentRole = role;
+  setTimeout(() => launchDashboard(), 500);
+}
+
+/* ═══════════════════════════════════════════════════
+   SCREEN MANAGEMENT
+═══════════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+}
+function showDashboard(id) {
+  document.querySelectorAll('.dashboard-screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+}
+function showLoading(msg) {
+  document.getElementById('loading-label').textContent = msg || 'Loading...';
+  showScreen('loading');
+}
+function hideLoading() { showScreen('login'); }
+function showGoogleLogin() { showScreen('login'); }
+
+function showRolePicker() {
+  hideLoading();
+  // Populate user info in role picker
+  const nameEl = document.getElementById('rolePicker-name');
+  const emailEl = document.getElementById('rolePicker-email');
+  const avatarEl = document.getElementById('rolePicker-avatar');
+  nameEl.textContent = currentUser.name;
+  emailEl.textContent = currentUser.email;
+  if (currentUser.photo) {
+    avatarEl.outerHTML = `<img class="role-pick-photo" id="rolePicker-avatar" src="${currentUser.photo}" alt="${currentUser.name}">`;
+  } else {
+    avatarEl.textContent = currentUser.name.charAt(0);
+  }
+  showScreen('role');
+}
+
+function pickRole(role) {
+  currentRole = role;
+  showLoading('Opening your dashboard...');
+  setTimeout(() => launchDashboard(), 400);
+}
+
+function launchDashboard() {
+  updateTopbars();
+  showDashboard(currentRole);
+  if (currentRole === 'teacher') buildTeacherDash();
+  if (currentRole === 'parent') buildHeatmap();
+  showToast(`✓ Signed in as ${currentUser.name}`);
+}
+
+function updateTopbars() {
+  const u = currentUser;
+  if (!u) return;
+  const initial = u.name.charAt(0);
+
+  // Student
+  setEl('stu-topbar-name', u.name);
+  setEl('stu-topbar-role', `Student · Grade 4 · ${u.isGoogle ? 'Google Account' : 'Demo Mode'}`);
+  setAvatar('stu-topbar-avatar', u, initial, '#2563eb', '#7c3aed');
+
+  // Teacher
+  setEl('tch-topbar-name', u.name);
+  setEl('tch-topbar-role', `Teacher · Grade 4 · ${u.isGoogle ? 'Google Account' : 'Demo Mode'}`);
+  setAvatar('tch-topbar-avatar', u, initial, '#059669', '#10b981');
+
+  // Parent
+  setEl('par-topbar-name', u.name);
+  setEl('par-topbar-role', `Parent · Grade 4 · ${u.isGoogle ? 'Google Account' : 'Demo Mode'}`);
+  setAvatar('par-topbar-avatar', u, initial, '#b45309', '#f59e0b');
+}
+
+function setEl(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function setAvatar(id, user, initial, c1, c2) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (user.photo) {
+    const img = document.createElement('img');
+    img.className = 'db-avatar-photo';
+    img.id = id;
+    img.src = user.photo;
+    img.alt = user.name;
+    img.addEventListener('error', function() {
+      const fb = document.createElement('div');
+      fb.className = 'db-avatar';
+      fb.id = id;
+      fb.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
+      fb.textContent = initial;
+      this.replaceWith(fb);
+    });
+    el.replaceWith(img);
+  } else {
+    el.className = 'db-avatar';
+    el.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
+    el.textContent = initial;
+  }
+}
+
+
+/* ─── CLIENT ID HELPERS ─── */
+function testSavedId() {
+  const id = getClientId();
+  if (!id) {
+    setStatusMsg('⚠️ No Client ID saved yet.', '#fca5a5');
+    return;
+  }
+  setStatusMsg('Saved ID: ' + id.substring(0, 24) + '...  (' + id.length + ' chars)', '#6ee7b7');
+}
+function clearClientId() {
+  localStorage.removeItem('ssl_client_id');
+  document.getElementById('clientIdInput').value = '';
+  document.getElementById('configured-status').innerHTML =
+    '<span class="not-configured-badge">⚠️ Google Sign-In not yet configured</span>';
+  setStatusMsg('Client ID cleared. Paste a new one and click Save & Activate.', '#fcd34d');
+  document.getElementById('google-btn-container').innerHTML =
+    '<div class="g_id_signin" data-type="standard" data-theme="filled_black" data-text="signin_with" data-shape="pill" data-width="320"></div>';
+  googleInitialized = false;
+}
+
+function logout() {
+  // Sign out of Google if applicable
+  if (currentUser && currentUser.isGoogle && window.google && window.google.accounts) {
+    google.accounts.id.disableAutoSelect();
+  }
+  currentUser = null;
+  currentRole = null;
+  document.querySelectorAll('.dashboard-screen').forEach(s => s.classList.remove('active'));
+  hideDemoSelector();
+  showScreen('login');
+  showToast('✓ Signed out successfully');
+}
+
+/* ═══════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+window.onload = function() {
+  // Wire up the GSI bridge so our portal receives credentials
+  window.__portalHandleCredential = handleGoogleCredential;
+
+  // If a credential arrived before portal JS was ready, handle it now
+  if (window.__pendingCredential) {
+    handleGoogleCredential(window.__pendingCredential);
+    window.__pendingCredential = null;
+  }
+
+  // Initialize Google Sign-In after GSI library loads
+  if (window.google && window.google.accounts) {
+    initGoogleSignIn();
+  } else {
+    // GSI not loaded yet — wait for it (max 5 seconds)
+    let waited = 0;
+    const interval = setInterval(() => {
+      waited += 200;
+      if (window.google && window.google.accounts) {
+        clearInterval(interval);
+        initGoogleSignIn();
+      } else if (waited > 5000) {
+        clearInterval(interval);
+        document.getElementById('configured-status').innerHTML =
+          '<span class="not-configured-badge">⚠️ Google library failed to load — check internet connection</span>';
+      }
+    }, 200);
+  }
+};
+
+function openBook() {
+  const bookUrl = getBookUrl();
+
+  // Try to fetch the file first to check it exists
+  fetch(bookUrl, { method: 'HEAD' })
+    .then(res => {
+      if (res.ok) {
+        window.open(bookUrl, '_blank');
+      } else {
+        showBookError(bookUrl);
+      }
+    })
+    .catch(() => {
+      // fetch failed (file:// or network error) — try opening anyway
+      // but show a warning toast first
+      showToast('⚠️ Could not verify book location — trying to open anyway...');
+      setTimeout(() => window.open(bookUrl, '_blank'), 800);
+    });
+}
+
+function getBookUrl() {
+  // Check if a custom URL was saved
+  const saved = localStorage.getItem('ssl_book_url');
+  if (saved) return saved;
+  // Default: same folder as portal
+  const base = window.location.href.replace(/\/[^\/]*$/, '/');
+  return base + 'grade4_book.html';
+}
+
+function showBookError(attempted) {
+  // Build a helpful modal instead of silent failure
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(6,13,31,.92);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(8px);';
+
+  overlay.innerHTML = `
+    <div style="background:#111e3a;border:1px solid rgba(239,68,68,.3);border-radius:20px;padding:32px;max-width:480px;width:100%;text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">📂</div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:white;margin-bottom:10px;">Book file not found</h2>
+      <p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:20px;">
+        The portal looked for the book here:<br>
+        <code style="font-family:'DM Mono',monospace;font-size:11px;color:#5eead4;background:rgba(0,0,0,.4);padding:4px 8px;border-radius:4px;display:inline-block;margin:6px 0;word-break:break-all;">${attempted}</code><br>
+        Make sure <strong style="color:white;">grade4_book.html</strong> is in the <strong style="color:white;">same folder</strong> as grade4_portal.html.
+      </p>
+
+      <div style="background:rgba(0,0,0,.3);border-radius:10px;padding:16px;margin-bottom:20px;text-align:left;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px;">Or set a custom book URL:</div>
+        <input id="customBookUrl" type="text" placeholder="http://localhost:8000/grade4_book.html"
+          style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:white;font-family:'DM Mono',monospace;font-size:11px;outline:none;margin-bottom:8px;">
+        <button onclick="saveBookUrl()" style="width:100%;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#0d9488,#0a7a70);color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;">
+          Save URL &amp; Open Book
+        </button>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button onclick="this.closest('div[style*=fixed]').remove()"
+          style="padding:9px 20px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;font-family:'Sora',sans-serif;">
+          Close
+        </button>
+        <button onclick="window.open('${attempted}','_blank');this.closest('div[style*=fixed]').remove()"
+          style="padding:9px 20px;border-radius:8px;border:1px solid rgba(13,148,136,.4);background:rgba(13,148,136,.1);color:#5eead4;font-size:13px;cursor:pointer;font-family:'Sora',sans-serif;">
+          Try anyway →
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function saveBookUrl() {
+  const input = document.getElementById('customBookUrl');
+  const url = input ? input.value.trim() : '';
+  if (!url) return;
+  localStorage.setItem('ssl_book_url', url);
+  // Close modal and open
+  const modal = input.closest('div[style*="position:fixed"]');
+  if (modal) modal.remove();
+  window.open(url, '_blank');
+  showToast('✓ Book URL saved for future use');
+}
+
+/* ═══ TEACHER: ROSTER DATA ═══ */
+const STUDENTS = [
+  {name:'Omar Hassan',       av:'O', col:'#2563eb', done:7,  quiz:'4/5', avg:82, last:'Today',    status:'on'},
+  {name:'Fatima Al-Zahraa',  av:'F', col:'#7c3aed', done:9,  quiz:'5/5', avg:91, last:'Yesterday', status:'ex'},
+  {name:'James Okafor',      av:'J', col:'#dc2626', done:4,  quiz:'2/5', avg:58, last:'8 days ago', status:'be'},
+  {name:'Aisha Mohamed',     av:'A', col:'#059669', done:8,  quiz:'4/5', avg:86, last:'Today',    status:'on'},
+  {name:'Lucas Petrov',      av:'L', col:'#d97706', done:7,  quiz:'3/5', avg:74, last:'2 days ago', status:'on'},
+  {name:'Yuki Tanaka',       av:'Y', col:'#b91c1c', done:3,  quiz:'2/5', avg:52, last:'12 days ago', status:'be'},
+  {name:'Sara Al-Rashidi',   av:'S', col:'#0891b2', done:10, quiz:'5/5', avg:94, last:'Today',    status:'ex'},
+  {name:'Noah Williams',     av:'N', col:'#4f46e5', done:6,  quiz:'3/5', avg:71, last:'3 days ago', status:'on'},
+  {name:'Layla Mahmoud',     av:'L', col:'#be185d', done:4,  quiz:'2/5', avg:61, last:'10 days ago', status:'be'},
+  {name:'Ethan Chen',        av:'E', col:'#065f46', done:8,  quiz:'4/5', avg:84, last:'Yesterday', status:'on'},
+  {name:'Mariam Khalil',     av:'M', col:'#7c3aed', done:9,  quiz:'5/5', avg:89, last:'Today',    status:'ex'},
+  {name:'David Mensah',      av:'D', col:'#92400e', done:7,  quiz:'3/5', avg:76, last:'2 days ago', status:'on'},
+  {name:'Zara Ahmed',        av:'Z', col:'#1e40af', done:11, quiz:'5/5', avg:97, last:'Today',    status:'ex'},
+  {name:'Ali Hassan',        av:'A', col:'#0f766e', done:6,  quiz:'4/5', avg:78, last:'Yesterday', status:'on'},
+  {name:'Chloe Martin',      av:'C', col:'#9d174d', done:5,  quiz:'3/5', avg:68, last:'4 days ago', status:'on'},
+  {name:'Ravi Sharma',       av:'R', col:'#0369a1', done:8,  quiz:'4/5', avg:83, last:'Today',    status:'on'},
+  {name:'Amira Nasser',      av:'A', col:'#6d28d9', done:9,  quiz:'5/5', avg:90, last:'Yesterday', status:'ex'},
+  {name:'Ben Taylor',        av:'B', col:'#374151', done:6,  quiz:'3/5', avg:72, last:'3 days ago', status:'on'},
+  {name:'Nour Ibrahim',      av:'N', col:'#b45309', done:7,  quiz:'4/5', avg:80, last:'Today',    status:'on'},
+  {name:'Sofia Rossi',       av:'S', col:'#0891b2', done:10, quiz:'5/5', avg:92, last:'Today',    status:'ex'},
+  {name:'Khalid Mansour',    av:'K', col:'#1d4ed8', done:5,  quiz:'3/5', avg:67, last:'5 days ago', status:'on'},
+  {name:'Emma Johnson',      av:'E', col:'#7c3aed', done:8,  quiz:'4/5', avg:85, last:'Yesterday', status:'on'},
+  {name:'Tariq Abdullah',    av:'T', col:'#064e3b', done:4,  quiz:'2/5', avg:63, last:'7 days ago', status:'at'},
+  {name:'Priya Patel',       av:'P', col:'#92400e', done:9,  quiz:'5/5', avg:88, last:'Today',    status:'on'},
+];
+const STATUS_MAP = {
+  ex: {label:'Exceeding', cls:'badge-purple'},
+  on: {label:'On Track',  cls:'badge-green'},
+  at: {label:'At Risk',   cls:'badge-amber'},
+  be: {label:'Behind',    cls:'badge-red'},
+};
+
+function buildTeacherDash() {
+  const tbody = document.getElementById('rosterBody');
+  tbody.innerHTML = '';
+  STUDENTS.forEach(s => {
+    const pct = Math.round(s.done/13*100);
+    const {label, cls} = STATUS_MAP[s.status];
+    const progColor = s.status==='ex'?'prog-blue':s.status==='on'?'prog-teal':s.status==='at'?'prog-gold':'prog-red';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="stu-name-cell"><div class="stu-av" style="background:${s.col}22;color:${s.col};border:1px solid ${s.col}44;">${s.av}</div><div class="stu-av-name">${s.name}</div></div></td>
+      <td style="font-family:var(--mono);font-size:12px;">${s.done} / 13</td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div class="prog-bar" style="width:80px;margin:0;"><div class="prog-fill ${progColor}" style="width:${pct}%"></div></div><span style="font-size:11px;color:var(--text3);">${pct}%</span></div></td>
+      <td style="font-family:var(--mono);font-size:12px;">${s.quiz}</td>
+      <td><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${s.avg>=85?'#6ee7b7':s.avg>=70?'#fcd34d':'#fca5a5'}">${s.avg}%</span></td>
+      <td style="font-size:12px;color:var(--text3);">${s.last}</td>
+      <td><span class="badge ${cls}">${label}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  const chapters = ['Ch1','Ch2','Ch3','MP1','Ch5','Ch6','Ch7','MP2','Ch9','Ch10','Ch11','Ch12','Ch13'];
+  const avgs = [88,82,79,85,74,77,80,0,71,68,0,0,0];
+  const colors = ['#3b82f6','#6366f1','#8b5cf6','#f59e0b','#10b981','#059669','#047857','#f59e0b','#0891b2','#1d4ed8','#ec4899','#be185d','#7c3aed'];
+  const chartEl = document.getElementById('barChart');
+  chartEl.innerHTML = '';
+  chapters.forEach((ch,i) => {
+    const h = avgs[i] ? Math.round(avgs[i]/100*64) : 4;
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+    const val = avgs[i] ? `${avgs[i]}%` : 'TBD';
+    col.innerHTML = `<div class="bar-val" style="color:${avgs[i]?colors[i]:'var(--text3)'}">${val}</div><div class="bar-fill" style="height:${h}px;background:${colors[i]};opacity:${avgs[i]?.9:.2};"></div><div class="bar-label">${ch}</div>`;
+    chartEl.appendChild(col);
+  });
+}
+
+/* ═══ PARENT: HEATMAP ═══ */
+function buildHeatmap() {
+  const grid = document.getElementById('heatGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const levels = [0,1,3,2,0,1,3,2,3,1,0,2,3,2,1,0,2,3,1,2,0,3,2,1,0,1,2,3,1,2];
+  const colors = ['rgba(255,255,255,.06)','rgba(13,148,136,.3)','rgba(13,148,136,.6)','rgba(20,184,166,1)'];
+  levels.slice(0,28).forEach(l => {
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell';
+    cell.style.background = colors[l];
+    grid.appendChild(cell);
+  });
+}
+</script>
+</body>
+</html>
