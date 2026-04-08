@@ -931,8 +931,16 @@ let googleInitialized = false;
 ═══════════════════════════════════════════════════ */
 // ─── CLIENT ID MANAGEMENT ───────────────────────────────
 
+// ── YOUR GOOGLE CLIENT ID ──────────────────────────────
+// Paste your Client ID here once — everyone who opens
+// this page gets Google Sign-In automatically.
+const HARDCODED_CLIENT_ID = '555647218706-ufnbr7bcf3dgm13e9i5da40o745dn1i5.apps.googleusercontent.com';
+// ──────────────────────────────────────────────────────
+
 function getClientId() {
-  return (localStorage.getItem('ssl_client_id') || '').trim();
+  // localStorage takes priority (lets you override via setup panel)
+  // Falls back to the hardcoded ID above
+  return (localStorage.getItem('ssl_client_id') || HARDCODED_CLIENT_ID).trim();
 }
 
 function setStatusMsg(msg, color) {
