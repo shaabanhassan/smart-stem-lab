@@ -408,104 +408,84 @@ html,body{height:100%;font-family:var(--sans);background:var(--navy);color:var(-
 </div>
 
 <!-- ═══════════════════════════════════
-     GOOGLE SIGN-IN SCREEN
+     GOOGLE SIGN-IN SCREEN  (clean public-facing)
 ═══════════════════════════════════ -->
 <div class="screen active" id="screen-login">
-  <div class="gsi-wrap">
+  <div style="width:100%;max-width:380px;padding:24px;text-align:center;">
 
-    <div class="gsi-brand">
-      <div class="gsi-logo">🤖</div>
-      <div class="gsi-name">Smart STEM Lab</div>
-      <div class="gsi-tagline">Grade 4 · Digital &amp; AI Curriculum Portal</div>
+    <!-- Brand -->
+    <div style="margin-bottom:40px;">
+      <div style="width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--teal),#0d5a54);display:inline-flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:18px;box-shadow:0 16px 48px rgba(13,148,136,.4);">🤖</div>
+      <div style="font-family:var(--serif);font-size:32px;font-weight:700;color:white;margin-bottom:6px;">Smart STEM Lab</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);letter-spacing:.04em;">K–12 Digital &amp; AI Curriculum</div>
     </div>
 
-    <!-- Google Sign-In Card -->
-    <div class="gsi-card">
-      <div class="gsi-card-title">
-        <span id="configured-status"></span>
-      </div>
+    <!-- Hidden GSI init divs (invisible to user) -->
+    <div id="g_id_onload" data-callback="__gsiCallback" data-auto_prompt="false" data-itp_support="true" style="display:none;"></div>
 
-      <!-- Real Google button rendered here by GSI library -->
-      <div id="g_id_onload"
-        data-callback="__gsiCallback"
-        data-auto_prompt="false"
-        data-itp_support="true">
-      </div>
-      <div id="google-btn-container" style="display:flex;justify-content:center;margin-bottom:12px;min-height:44px;">
-        <div class="g_id_signin"
-          data-type="standard"
-          data-theme="filled_black"
-          data-text="signin_with"
-          data-shape="pill"
-          data-logo_alignment="left"
-          data-width="320">
-        </div>
-      </div>
+    <!-- Google Sign-In button -->
+    <div id="google-btn-container" style="display:flex;justify-content:center;margin-bottom:14px;min-height:48px;"></div>
 
-      <!-- Manual Google button fallback (shown when no Client ID) -->
-      <button class="google-btn" id="google-btn-manual" onclick="triggerGoogleAuth()" style="display:none;">
-        <svg class="google-icon" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        Sign in with Google
-      </button>
+    <!-- Fallback manual Google button (shown only when GSI not configured) -->
+    <button class="google-btn" id="google-btn-manual" onclick="triggerGoogleAuth()" style="display:none;margin-bottom:14px;">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google
+    </button>
 
-      <div class="gsi-divider">or for demo / presentations</div>
-
-      <button class="demo-btn" onclick="showDemoSelector()">
-        🎬 Demo Mode — No Google Account Needed
-      </button>
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:12px;margin:6px 0 14px;color:rgba(255,255,255,.18);font-size:11px;">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.08);"></div>or<div style="flex:1;height:1px;background:rgba(255,255,255,.08);"></div>
     </div>
+
+    <!-- Demo Mode button -->
+    <button onclick="showDemoSelector()" style="width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:14px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all .2s;margin-bottom:32px;">
+      🎬 Try Demo Mode
+    </button>
 
     <!-- Demo selector (hidden by default) -->
-    <div id="demo-selector" style="display:none;animation:fadeUp .2s ease;">
-      <div class="gsi-card" style="margin-top:0;padding-top:16px;">
-        <div class="gsi-card-title">Choose a demo account</div>
+    <div id="demo-selector" style="display:none;animation:fadeUp .2s ease;margin-bottom:20px;">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;text-align:left;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:12px;text-align:center;">Choose a role to preview</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button onclick="demoLogin('student')" style="padding:12px 16px;border-radius:10px;border:1.5px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
-            <span style="font-size:22px;">🎒</span>
-            <div><div style="font-weight:700;">Student — Omar Hassan</div><div style="font-size:11px;opacity:.7;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bfd0d2decd91d7deccccded1ffdbdad2d091ccd2decdcbcccbdad2d3dedd91dcd0d2">[email&#160;protected]</a></div></div>
+          <button onclick="demoLogin('student')" style="padding:11px 14px;border-radius:10px;border:1.5px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
+            <span style="font-size:20px;">🎒</span><span>Student</span>
           </button>
-          <button onclick="demoLogin('teacher')" style="padding:12px 16px;border-radius:10px;border:1.5px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:#6ee7b7;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
-            <span style="font-size:22px;">👩‍🏫</span>
-            <div><div style="font-weight:700;">Teacher — Ms. Sarah Al-Rashid</div><div style="font-size:11px;opacity:.7;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5f322c712c3e2d3e371f3b3a3230712c323e2d2b2c2b3a32333e3d713c3032">[email&#160;protected]</a></div></div>
+          <button onclick="demoLogin('teacher')" style="padding:11px 14px;border-radius:10px;border:1.5px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:#6ee7b7;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
+            <span style="font-size:20px;">👩‍🏫</span><span>Teacher</span>
           </button>
-          <button onclick="demoLogin('parent')" style="padding:12px 16px;border-radius:10px;border:1.5px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#fcd34d;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
-            <span style="font-size:22px;">👨‍👩‍👧</span>
-            <div><div style="font-weight:700;">Parent — Mr. Ahmed Hassan</div><div style="font-size:11px;opacity:.7;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f39e81dd929b9e9697b397969e9cdd809e9281878087969e9f9291dd909c9e">[email&#160;protected]</a></div></div>
+          <button onclick="demoLogin('parent')" style="padding:11px 14px;border-radius:10px;border:1.5px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:#fcd34d;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--sans);text-align:left;display:flex;align-items:center;gap:10px;transition:all .15s;">
+            <span style="font-size:20px;">👨‍👩‍👧</span><span>Parent</span>
           </button>
         </div>
-        <button onclick="hideDemoSelector()" style="width:100%;margin-top:10px;padding:8px;border:none;background:transparent;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--sans);">← Back</button>
+        <button onclick="hideDemoSelector()" style="width:100%;margin-top:10px;padding:7px;border:none;background:transparent;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:var(--sans);">← Back</button>
       </div>
     </div>
 
-    <!-- Setup panel -->
-    <div class="setup-panel">
-      <div class="setup-panel-title">⚙️ Developer Setup — Google Client ID</div>
-      <input class="client-id-input" id="clientIdInput" type="text" placeholder="Paste your Google Client ID here (e.g. 123456789-abc.apps.googleusercontent.com)">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="setup-save-btn" onclick="saveClientId()">💾 Save &amp; Activate</button>
-        <button onclick="testSavedId()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-size:11px;cursor:pointer;font-family:var(--sans);">🔍 Test</button>
-        <button onclick="clearClientId()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.25);background:transparent;color:#fca5a5;font-size:11px;cursor:pointer;font-family:var(--sans);">✕ Clear</button>
-      </div>
-      <div style="font-size:11px;margin-top:8px;" id="clientIdStatus"></div>
-      <div class="setup-steps">
-        <strong style="color:rgba(255,255,255,.5);">How to get your Client ID in 5 steps:</strong>
-        <ol>
-          <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
-          <li>Create a project → Enable <strong style="color:rgba(255,255,255,.5);">Google Identity API</strong></li>
-          <li>APIs &amp; Services → Credentials → <strong style="color:rgba(255,255,255,.5);">Create OAuth 2.0 Client ID</strong></li>
-          <li>Type: <strong style="color:rgba(255,255,255,.5);">Web application</strong> → In <strong style="color:rgba(255,255,255,.5);">Authorized JavaScript Origins</strong> add your exact URL (e.g. <code style="color:var(--teal3);font-family:var(--mono);font-size:10px;">http://localhost:8000</code>)</li>
-          <li>Copy the Client ID → paste above → Save &amp; Activate ✓</li>
-        </ol>
-        <div style="margin-top:12px;padding:10px 12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:11px;color:#fca5a5;">
-          <strong>⚠️ Important:</strong> Google Sign-In will NOT work if you open this file directly in the browser (<code style="font-family:var(--mono);">file://</code>). You must serve it over HTTP. Quickest way:
-          <div style="margin-top:6px;background:rgba(0,0,0,.3);border-radius:5px;padding:6px 10px;font-family:var(--mono);font-size:10px;color:#6ee7b7;">python -m http.server 8000</div>
-          Then open: <a href="http://localhost:8000" target="_blank" style="color:var(--teal2);">http://localhost:8000/grade4_portal.html</a>
+    <!-- Tiny copyright + hidden developer link -->
+    <div style="font-size:11px;color:rgba(255,255,255,.18);line-height:1.8;">
+      © 2025 Smart STEM Lab
+      <br>
+      <button onclick="toggleDevPanel()" style="background:none;border:none;color:rgba(255,255,255,.15);font-size:10px;cursor:pointer;font-family:var(--sans);padding:0;margin-top:4px;">⚙</button>
+    </div>
+
+    <!-- Developer Setup Panel — hidden by default, toggled by the tiny gear icon -->
+    <div id="dev-panel" style="display:none;margin-top:20px;animation:fadeUp .2s ease;">
+      <div class="setup-panel">
+        <div class="setup-panel-title">⚙️ Developer Setup — Google Client ID</div>
+        <!-- Hidden status element (used by JS) -->
+        <span id="configured-status" style="display:none;"></span>
+        <input class="client-id-input" id="clientIdInput" type="text" placeholder="Paste your Google Client ID here">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="setup-save-btn" onclick="saveClientId()">💾 Save &amp; Activate</button>
+          <button onclick="testSavedId()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.5);font-size:11px;cursor:pointer;font-family:var(--sans);">🔍 Test</button>
+          <button onclick="clearClientId()" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.25);background:transparent;color:#fca5a5;font-size:11px;cursor:pointer;font-family:var(--sans);">✕ Clear</button>
         </div>
+        <div style="font-size:11px;margin-top:8px;" id="clientIdStatus"></div>
       </div>
     </div>
 
@@ -934,7 +914,7 @@ let googleInitialized = false;
 // ── YOUR GOOGLE CLIENT ID ──────────────────────────────
 // Paste your Client ID here once — everyone who opens
 // this page gets Google Sign-In automatically.
-const HARDCODED_CLIENT_ID = '555647218706-ufnbr7bcf3dgm13e9i5da40o745dn1i5.apps.googleusercontent.com';
+const HARDCODED_CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
 // ──────────────────────────────────────────────────────
 
 function getClientId() {
@@ -1105,6 +1085,11 @@ const DEMO_USERS = {
   teacher: { name: 'Ms. Sarah Al-Rashid', email: 'ms.sarah@demo.smartstemlab.com', photo: null, googleId: 'demo_teacher', isGoogle: false },
   parent:  { name: 'Mr. Ahmed Hassan',  email: 'mr.ahmed@demo.smartstemlab.com',   photo: null, googleId: 'demo_parent',  isGoogle: false },
 };
+
+function toggleDevPanel() {
+  const panel = document.getElementById('dev-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
 
 function showDemoSelector() {
   document.getElementById('demo-selector').style.display = 'block';
